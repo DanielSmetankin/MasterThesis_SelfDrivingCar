@@ -1,0 +1,8 @@
+prefix=/home/xavier-jetson-nx/catkin_ws/install
+
+Name: RL_policy_package_safe
+Description: Description of RL_policy_package_safe
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
