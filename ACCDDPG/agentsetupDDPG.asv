@@ -1,0 +1,132 @@
+%setup action 
+actionInfo = rlNumericSpec([1 1],'LowerLimit',min_ac,'UpperLimit',max_ac);
+actionInfo.Name = 'acceleration';
+%setup observation
+numObservations = 4;
+observationInfo = rlNumericSpec([numObservations 1], 'LowerLimit',-inf*ones(numObservations,1),'UpperLimit',inf*ones(numObservations,1));
+observationInfo.Name = 'observations';
+observationInfo.Description = 'integrated error, error, and measured height';
+% create enviroment 
+mdl = 'ACCTestBenchExample';
+open_system(mdl)
+agentblk = [mdl '/RL Agent'];
+env = rlSimulinkEnv('ACCTestBenchExample','ACCTestBenchExample/RL Agent',observationInfo,actionInfo);
+
+%Reset
+env.ResetFcn = @(in)localResetFcn(in);
+
+%sample time
+Ts = 0.1;
+Tf = 75;
+
+%fix random generation
+rng("default")
+
+%create critic
+L = 48; % number of neurons
+statePath = [
+    featureInputLayer(numObservations,'Normalization','none','Name','observations')
+    fullyConnectedLayer(L,'Name',' Fully connected layer 1')
+    reluLayer('Name','Relua layer 1')
+    fullyConnectedLayer(L,'Name',' Fully connected layer 2')
+    additionLayer(2,'Name','add')
+    reluLayer('Name','Relu Layer 2')
+    fullyConnectedLayer(L,'Name','Fully connected layer 3')
+    reluLayer('Name','Relu Layer 3')
+    fullyConnectedLayer(1,'Name','Qvalue Layer')];
+
+actionPath = [
+    featureInputLayer(1,'Normalization','none','Name','action')
+    fullyConnectedLayer(L, 'Name', 'Fully connected layer 5')];
+
+criticNetwork = layerGraph(statePath);
+criticNetwork = addLayers(criticNetwork, actionPath);
+    
+criticNetwork = connectLayers(criticNetwork,'Fully connected layer 5','add/in2');
+
+
+plot(criticNetwork)
+
+%specify options for critic 
+criticOptions = rlRepresentationOptions('LearnRate',1e-3,'GradientThreshold',1,'L2RegularizationFactor',1e-4);
+
+%create critic 
+critic = rlQValueRepresentation(criticNetwork,observationInfo,actionInfo,'Observation',{'observations'},'Action',{'action'},criticOptions);
+
+%create actor
+actorNetwork = [
+    featureInputLayer(numObservations,'Normalization','none','Name','observations')
+    fullyConnectedLayer(L,'Name','Fully connected layer 1')
+    reluLayer('Name','Relu layer 1')
+    fullyConnectedLayer(L,'Name','Fully connected layer 2')
+    reluLayer('Name','Relu Layer 2')
+    fullyConnectedLayer(L,'Name','Fully connected layer 3')
+    reluLayer('Name','Relu layer 3')
+    fullyConnectedLayer(1,'Name','Fully connected layer 4')
+    tanhLayer('Name','tanH Layer')
+    scalingLayer('Name','Actor Scaling Layer','Scale',2.5,'Bias',-0.5)];
+
+actorOptions = rlRepresentationOptions('LearnRate',1e-4,'GradientThreshold',1,'L2RegularizationFactor',1e-4);
+actor = rlDeterministicActorRepresentation(actorNetwork,observationInfo,actionInfo,...
+    'Observation',{'observations'},'Action',{'Actor Scaling Layer'},actorOptions);
+
+%specify agent options
+agentOptions = rlDDPGAgentOptions(...
+    'SampleTime',Ts,...
+    'TargetSmoothFactor',1e-3,...
+    'ExperienceBufferLength',1e6,...
+    'DiscountFactor',0.99,...
+    'MiniBatchSize',128);
+
+agentOptions.NoiseOptions.StandardDeviation = 0.6;
+agentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-5;
+
+actorNetwork = layerGraph(actorNetwork);
+plot(actorNetwork)
+
+%train agent
+maxepisodes = 3000;
+maxsteps = ceil(Tf/Ts);
+trainingOpts = rlTrainingOptions(...
+    'MaxEpisodes',maxepisodes,...
+    'MaxStepsPerEpisode',maxsteps,...
+    'Verbose',false,...
+    'Plots','training-progress',...
+    'StopTrainingCriteria','AverageReward',...
+    'StopTrainingValue',10000);
+
+
+
+
+doTraining = false;
+USE_PRE_TRAINED_MODEL = false;
+agentOptions.ResetExperienceBufferBeforeTraining =~(USE_PRE_TRAINED_MODEL);
+
+if USE_PRE_TRAINED_MODEL
+    load('ACCDPPG_Agent_Test.mat','agent')
+    agent = agent;
+else
+    %create agent
+    agent = rlDDPGAgent(actor,critic,agentOptions);
+
+end
+
+
+
+
+if doTraining    
+    % Train the agent.
+    trainingStats = train(agent,env,trainingOpts);
+else
+    % Load a pretrained agent for the example.
+    load('ACCDPPG_Agent_Race.mat','agent')       
+end
+
+
+if doTraining
+    save("ACCDPPG_Agent_Test.mat", "agent")
+end
+
+% simOptions = rlSimulationOptions('MaxSteps',maxsteps);
+% experience = sim(env,agent,simOptions);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
