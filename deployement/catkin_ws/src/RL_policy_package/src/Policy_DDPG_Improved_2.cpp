@@ -1648,7 +1648,7 @@ void Policy_DDPG_Improved_2::step(float g_relativeDistance, ros::Publisher& publ
   relativeVelocityMsg.data = relative_velocity;
 
   float time_gap = 0.1;
-  float safe_distance = 0.1 + (time_gap*velocity);
+  float safe_distance = 0.5 + (time_gap*velocity);
   safeDistanceMsg.data = safe_distance;
   ROS_INFO("Velocity: [%f]", velocity); // in m/s
   ROS_INFO("Relative Velocity: [%f]", relative_velocity); // in m/s
