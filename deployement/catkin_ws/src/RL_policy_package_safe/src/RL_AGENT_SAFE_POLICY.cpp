@@ -1563,13 +1563,9 @@ void RL_AGENT_SAFE_POLICY::step(float g_relativeDistance, ros::Publisher& publis
 
 
 
- relativeVelocityMsg.data = relative_velocity;
- // else{
- // relative_velocity = previous_velocity;
- // }
- // previous_velocity = relative_velocity;
+  relativeVelocityMsg.data = relative_velocity;
   float time_gap = 0.1;
-  float safe_distance = 0.1 + (0.5*velocity);
+  float safe_distance = time_gap + (0.5*velocity);
   safeDistanceMsg.data = safe_distance;
   ROS_INFO("Velocity: [%f]", velocity); // in m/s
   ROS_INFO("Relative Velocity: [%f]", relative_velocity); // in m/s
