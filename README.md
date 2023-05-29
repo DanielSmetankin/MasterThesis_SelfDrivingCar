@@ -12,6 +12,8 @@ Contained within this folder is all the necessary components for deployment, enc
 The code responsible for the logic of the self driving car can be found in /deployment/catkin_ws/src/RL_policy_package/src/ for agent A, 
 and in /deployment/catkin_ws/src/RL_policy_package_safe/src/ for agent S. To facilitate the setup of the deployment, you can refer to the deployment manual.
 
+Agent A has some PIDcontroller code files but these do not work properly yet so I don't advice using them.
+
 
 
 
